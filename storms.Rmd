@@ -3,10 +3,9 @@ title: "Economical consequences of storms in the United States"
 output: pdf_document
 ---
 
-
 ## Synopsis
 
-The weather event data originated from the National Environmental Satellite, Data, and Information Service (NESDIS). The weather events were classified into valid events using a string pattern matching algorithm. Further information is given in section `Data Processing`. With the algorithm the total number of weather events was reduced from originally 935 to 20. The total number of deaths, injuries and costs is used as metric to incorporate both, the number of events and their respective magnitude. Thus mild weather events which appear on a common basis are weighted similar to severe events which only happen rarely. The most dangeraous wether events are tornados, heat and 
+The weather event data originated from the National Environmental Satellite, Data, and Information Service (NESDIS). The weather events were classified into valid events using a string pattern matching algorithm. Further information is given in section `Data Processing`. With the algorithm the total number of weather events was reduced from originally 977 to 20. The total number of deaths, injuries and costs is used as metric to incorporate both, the number of events and their respective magnitude. Thus mild weather events which appear on a common basis are weighted similar to severe events which only happen rarely. The most dangeraous wether events are tornados, heat and floods accounting to 66% of all observed deaths in the United States. Furthermore, 63% of all injuries are caused by tornados. Wind, tornados, floods, thunderstorm amd hail cause the most economic damage accounting to almost 90% of total costs.
 
 ## Data Processing
 
@@ -16,6 +15,7 @@ library("dplyr")
 library("ggplot2")
 library("stringr")
 library("purrr")
+library("tidyr")
 
 storm <- read_csv("data/repdata_data_StormData.csv") %>% 
   select(EVTYPE, FATALITIES, INJURIES, PROPDMG, CROPDMG)
@@ -25,7 +25,7 @@ names(storm) <- c("event", "deaths", "injuries", "propdmg", "cropdmg")
 nrevents <- length(unique(storm$event))
 ```
 
-In total there are unique `r nrevents` present in the data. However, due to different capitalisation
+In total there are `r nrevents` unique weather events present in the data. However, due to different capitalisation
 e.g. `Freezing Fog` and `FREEZING FOG` the number of duplicated events can be reduced using only
 lowercase letters.
 
@@ -37,7 +37,8 @@ nrevents <- length(unique(storm$event))
 Thus lowering the number of events to `r nrevents`. In addition an event classifier is applied to the complete list of
 events to further simplify complex events like for example `flash flood - heavy wind`. First the
 raw event string is split at each ` ` and `/` character. A pattern match between each single event string and the following valid
-events `blizzard`, `cold`, `fire`, `flood`, `hail`, `heat`, `hurricane`, `lightning`, `microburst`, `rain`, `snow`, `thunderstorm`, `tornado`, `tsunami`, `typhoon`, `wind` and `waterspout`
+events `blizzard`, `cold`, `fire`, `flood`, `hail`, `heat`, `hurricane`, `lightning`, `microburst`, `rain`, `snow`, 
+`thunderstorm`, `tornado`, `tsunami`, `typhoon`, `wind` and `waterspout`
 is applied. Thus complex events like `flash flood - heavy wind` are assigned to multiple valid events e.g. `flood` and `wind`.
 If none of the event strings match with any of the valid events the valid event `other` was assigned.
 
@@ -45,8 +46,8 @@ If none of the event strings match with any of the valid events the valid event 
 classify_events <- function(data) {
   events <- str_split(string = data$event, pattern = " |/")
   
-  valid_events <- c("blizzard", "cold", "fire", "flood", "fog", "hail", "heat", "hurricane", 
-                    "lightning", "microburst", "rain", "snow", "thunderstorm", 
+  valid_events <- c("blizzard", "cold", "fire", "flood", "fog", "hail", "heat", 
+                    "hurricane", "lightning", "microburst", "rain", "snow", "thunderstorm", 
                     "tornado", "tsunami", "typhoon", "wind","waterspout")
   
   find_ids <- function(strings) {
@@ -73,7 +74,8 @@ classify_events <- function(data) {
   ids[no_id] <- length(valid_events) + 2
   select_events <- data.frame(valid_event = c(valid_events, "storm", "other"))
   select_events$valid_id <- 1:nrow(select_events)
-  ids_df <- data.frame(id = rep(1:nrow(data), times = map_int(ids, length)), valid_id = unlist(ids))
+  ids_df <- data.frame(id = rep(1:nrow(data), times = map_int(ids, length)), 
+                       valid_id = unlist(ids))
   
   final_df <- left_join(ids_df, data, by = "id") %>% 
     left_join(select_events, by = "valid_id")
@@ -100,7 +102,7 @@ The number of events has been reduced to `r nrevents`.
 ## Results
 
 The total number of deaths and injuries is used as metric to incorporate both, the number of deaths per event and the total number of events. Thus events with a 
-small number of deaths which happen on a regular basis e.g. `heat` are weighted more than severe events which only happen in rare cases. 
+small number of deaths which happen on a regular basis e.g. `heat` are weighted similar to severe events which only happen in rare cases. 
 
 ```{r}
 agg <- group_by(storm_clean, valid_event) %>% 
@@ -108,7 +110,9 @@ agg <- group_by(storm_clean, valid_event) %>%
             injuries_tot = sum(injuries))
 
 deaths <- arrange(agg, deaths_tot)
-deaths$valid_event <- factor(deaths$valid_event, levels = deaths$valid_event, labels = deaths$valid_event)
+deaths$valid_event <- factor(deaths$valid_event, 
+                             levels = deaths$valid_event, 
+                             labels = deaths$valid_event)
 
 capt <- "Total number of deaths in the United States due to different weather events. 
 Intensity of red color indicates more deaths. 
@@ -120,20 +124,23 @@ ggplot(deaths, aes(x = valid_event, y = deaths_tot, fill = deaths_tot)) +
   coord_flip() +
   labs(x = "Event category", 
        y = "Total deaths",
-       title = "Total deaths by weather event",
+       title = "Total deaths caused by weather events",
        caption = capt) +
   theme(legend.position = "none")
 
 top3 <- (nrow(deaths) - 2):nrow(deaths)
 top3_death <- rev(as.character(deaths$valid_event[top3]))
-top3_perc <- round(sum(deaths$deaths_tot[top3]) / sum(deaths$deaths_tot), digits = 2) * 100
+top3_perc <- round(sum(deaths$deaths_tot[top3]) / 
+                     sum(deaths$deaths_tot), digits = 2) * 100
 ```
 
 The 3 most dangerous weather events are `r top3_death` accounting to `r top3_perc`% of all observed deaths in the United States. 
 
 ```{r}
 injuries <- arrange(agg, injuries_tot)
-injuries$valid_event <- factor(injuries$valid_event, levels = injuries$valid_event, labels = injuries$valid_event)
+injuries$valid_event <- factor(injuries$valid_event, 
+                               levels = injuries$valid_event, 
+                               labels = injuries$valid_event)
 
 capt <- "Total number of injuries in the United States due to different weather events. 
 Intensity of red color indicates more injuries. 
@@ -145,7 +152,7 @@ ggplot(injuries, aes(x = valid_event, y = injuries_tot, fill = injuries_tot)) +
   coord_flip() +
   labs(x = "Event category", 
        y = "Total injuries",
-       title = "Total injuries by weather event",
+       title = "Total injuries caused by weather events",
        caption = capt) +
   theme(legend.position = "none")
 ```
@@ -153,8 +160,44 @@ ggplot(injuries, aes(x = valid_event, y = injuries_tot, fill = injuries_tot)) +
 ```{r}
 top1 <- nrow(injuries)
 top1_injury <- as.character(injuries$valid_event[top1])
-top1_perc <- round(sum(injuries$injuries_tot[top1]) / sum(injuries$injuries_tot), digits = 2) * 100
+top1_perc <- round(sum(injuries$injuries_tot[top1]) / 
+                     sum(injuries$injuries_tot), digits = 2) * 100
 ```
 
-`r top1_perc`% of all injuries due to weather events are caused by `r top1_injury`.
+`r top1_perc` % of all injuries due to weather events are caused by `r top1_injury`.
 
+```{r}
+cost <- select(storm_clean, event, valid_event, propdmg, cropdmg) %>% 
+  gather(propdmg, cropdmg, key = "type", value = "cost") %>% 
+  group_by(valid_event, type) %>% 
+  summarise(cost = sum(cost))
+
+order <- group_by(cost, valid_event) %>% 
+  summarise(sum_cost = sum(cost)) %>% 
+  arrange(sum_cost)
+
+cost$valid_event <- factor(cost$valid_event, levels = order$valid_event)
+
+capt <- "Total number of costs in the United States due to different weather events. 
+Red color coding indicates costs related to crop damage and blue to prop damage. 
+From National Environmental Satellite, Data, and Information Service (NESDIS)"
+
+
+ggplot(cost, aes(x = valid_event, y = cost, fill = type)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_manual("costs", values = c("red", "blue")) +
+  labs(x = "Event category", 
+       y = "Total costs",
+       title = "Economic consequences of weather events",
+       caption = capt)
+```
+
+```{r}
+top5 <- (nrow(order) - 4):nrow(order)
+top5_cost <- rev(as.character(order$valid_event[top5]))
+top5_perc <- round(sum(order$sum_cost[top5]) / 
+                     sum(order$sum_cost), digits = 2) * 100
+```
+
+The weather events causing the most economic consequences are `r top5_cost`. Together they account to `r top5_perc`% of all costs. Prop related damage is much higher compared to crop related damage.
