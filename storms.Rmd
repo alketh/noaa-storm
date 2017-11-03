@@ -10,5 +10,164 @@ describes and summarizes your analysis in at most 10 complete sentences.
 
 ## Data Processing
 
+```{r}
+library("readr")
+library("dplyr")
+library("ggplot2")
+library("stringr")
+library("purrr")
+
+storm <- read_csv("data/repdata_data_StormData.csv") %>% 
+  select(EVTYPE, FATALITIES, INJURIES, PROPDMG, CROPDMG)
+
+names(storm) <- c("event", "deaths", "injuries", "propdmg", "cropdmg")
+
+nrevents <- length(unique(storm$event))
+```
+
+In total there are unique *nrevents* present in the data. However, due to different capitalisation
+e.g. `Freezing Fog` and `FREEZING FOG` the number of duplicated events can be reduced using only
+lowercase letters.
+
+```{r}
+storm$event <- tolower(storm$event)
+nrevents <- length(unique(storm$event))
+```
+
+Lowering the number of events to *nrevents*. To further simplify the events more specific event
+tpyes like for example `flash flood - heavy rain`, `flood/flash/flood`, `flash flooding/flood` are simplified
+using broader event types e.g. `flood`.
+
+```{r}
+classify_events <- function(data) {
+  events <- str_split(string = data$event, pattern = " |/")
+  
+  valid_events <- c("blizzard", "fire", "flood", "fog", "hail", "hurricane", 
+                    "lightning", "microburst", "rain", "snow", "thunderstorm", 
+                    "tornado", "tsunami", "typhoon", "wind","waterspout")
+  
+  find_ids <- function(strings) {
+    ids <- sapply(valid_events, function(x) str_detect(string = strings, pattern = x))
+    if (is.array(ids)) {
+      ids <- unlist(apply(ids, MARGIN = 1, which))
+    } else {
+      ids <- which(ids)
+    }
+    # Add storm here, because it is part of 'thunderstorm'
+    if (any(strings %in% "storm")) ids <- c(ids, length(valid_events) + 1)
+    return(ids) 
+  }
+  
+  ids <- vector(mode = "list", length = length(events))
+  for (i in seq_along(ids)) {
+    ids[[i]] <- find_ids(strings = events[[i]])
+    if (i %% 10000 == 0) print(i)
+  }
+  
+  count <- sapply(events, length)
+  
+  if (patternmatch) {
+    ids <- grepl(pattern = events, x = data$event)
+  } else {
+    ids <- data$event %in% events
+  }
+  # report events that will be changed
+  print(paste(paste(unique(data$event[ids]), collapse = "\n"), "changed to", new_event))
+
+  data$event_new <- data$event
+  data$event_new[ids] <- new_event
+  return(data)
+}
+
+storm <- simplify_events(storm, new_event = "hail", events = "hail")
+storm <- simplify_events(storm, new_event = "flood", events = "flood")
+storm <- simplify_events(storm, new_event = "thunderstorm", events = "thunderstorm")
+
+nrevents <- length(unique(storm$event_new))
+```
+
+
+Based on the data documentation (https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf) 
+47 event types are present: 
+
+Avalanche
+Blizzard 
+Coastal Flood
+Cold/Wind Chill
+Debris Flow C 
+Dense Fog
+Dense Smoke
+Drought
+Dust Devil
+Dust Storm
+Excessive Heat
+Extreme Cold/Wind Chill
+Flash Flood
+Flood
+Freezing Fog
+Frost/Freeze
+Funnel Cloud
+Hail
+Heat
+Heavy Rain
+Heavy Snow
+High Surf
+High Wind
+Hurricane/Typhoon
+Ice Storm
+Lakeshore Flood
+Lake-Effect Snow
+Lightning
+Marine Hail
+Marine High Wind
+Marine Strong Wind 
+Marine Thunderstorm Wind
+Rip Current
+Seiche
+Sleet
+Storm Tide
+Strong Wind
+Thunderstorm Wind
+Tornado
+Tropical Depression
+Tropical Storm
+Tsunami 
+Volcanic Ash
+Waterspout
+Wildfire
+Winter Storm
+Winter Weather 
+
+
+The following simplifications have been applied:
+
+* Combine all `Flood` related events, namely `Coastal Flood`, `Flash Flood`, `Lakeshore Flood` to the event type `Flood`.
+* Combine all `Wind` related events, namely `Cold/Wind Chill`, `Extreme Cold/Wind Chill`, `High Wind`, `Marine High Wind`, `Marine Strong Wind`, `Strong Wind`, `Marine Thunderstorm Wind` and `Thunderstorm Wind` to the event type `Wind`.
+* Combine all `Heat` related events, namely `Excessive Heat` to the event type `Heat`
+* Combine all `Storm` related events, namely `Dust Storm`, `Ice Storm`, `Storm Tide`, `Tropical Storm` and `Winter Storm` to the event type `Storm`.
+* Combine all `Hail` related events, namely `Marine Hail` to the event type `Hail`
+
+```{r}
+storm$event[grepl(pattern = "flood", storm$event)] <- "flood"
+storm$event[grepl(pattern = "wind", storm$event)] <- "wind"
+storm$event[grepl(pattern = "storm", storm$event)] <- "storm"
+storm$event[storm$event == "excessive heat"] <- "heat"
+storm$event[storm$event == "marine hail"] <- "hail"
+```
+
+Resulting in the final list of events:
+
+```{r}
+sort(unique(storm$event))
+```
+
+
+
+
 ## Results
+
+```{r}
+ggplot(storm, aes(x = event, y = deaths)) +
+  geom_boxplot()
+```
 
