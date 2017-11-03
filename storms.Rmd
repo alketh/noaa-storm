@@ -5,7 +5,7 @@ output: pdf_document
 
 ## Synopsis
 
-The weather event data originated from the National Environmental Satellite, Data, and Information Service (NESDIS). The weather events were classified into valid events using a string pattern matching algorithm. Further information is given in section `Data Processing`. With the algorithm the total number of weather events was reduced from originally 977 to 20. The total number of deaths, injuries and costs is used as metric to incorporate both, the number of events and their respective magnitude. Thus mild weather events which appear on a common basis are weighted similar to severe events which only happen rarely. The most dangeraous wether events are tornados, heat and floods accounting to 66% of all observed deaths in the United States. Furthermore, 63% of all injuries are caused by tornados. Wind, tornados, floods, thunderstorm amd hail cause the most economic damage accounting to almost 90% of total costs.
+The weather event data originated from the National Environmental Satellite, Data, and Information Service (NESDIS). The weather events were classified into valid events using a string pattern matching algorithm. Further information is given in section __Data Processing__. With the algorithm the total number of weather events was reduced from originally 977 to 20. The total number of deaths, injuries and costs is used as metric to incorporate both, the number of events and their respective magnitude. Thus mild weather events which appear on a common basis are weighted similar to severe events which only happen rarely. The most dangeraous wether events are tornados, heat and floods accounting to 66% of all observed deaths in the United States. Furthermore, 63% of all injuries are caused by tornados. Wind, tornados, floods, thunderstorms amd hail cause the most economic damage accounting to almost 90% of total costs.
 
 ## Data Processing
 
@@ -26,7 +26,7 @@ nrevents <- length(unique(storm$event))
 ```
 
 In total there are `r nrevents` unique weather events present in the data. However, due to different capitalisation
-e.g. `Freezing Fog` and `FREEZING FOG` the number of duplicated events can be reduced using only
+e.g. __Freezing Fog__ and __FREEZING FOG__ the number of duplicated events can be reduced using only
 lowercase letters.
 
 ```{r}
@@ -35,12 +35,31 @@ nrevents <- length(unique(storm$event))
 ```
 
 Thus lowering the number of events to `r nrevents`. In addition an event classifier is applied to the complete list of
-events to further simplify complex events like for example `flash flood - heavy wind`. First the
-raw event string is split at each ` ` and `/` character. A pattern match between each single event string and the following valid
-events `blizzard`, `cold`, `fire`, `flood`, `hail`, `heat`, `hurricane`, `lightning`, `microburst`, `rain`, `snow`, 
-`thunderstorm`, `tornado`, `tsunami`, `typhoon`, `wind` and `waterspout`
-is applied. Thus complex events like `flash flood - heavy wind` are assigned to multiple valid events e.g. `flood` and `wind`.
-If none of the event strings match with any of the valid events the valid event `other` was assigned.
+events to further simplify complex events like for example __flash flood - heavy wind__. The
+raw event string is split at each __ __ (space) and __/__ character. A pattern match between each single event string and the following valid
+events:
+
+* __blizzard__
+* __cold__
+* __fire__
+* __flood__
+* __hail__ 
+* __heat__ 
+* __hurricane__ 
+* __lightning__
+* __microburst__
+* __rain__
+* __snow__
+* __storm__
+* __thunderstorm__
+* __tornado__
+* __tsunami__
+* __typhoon__
+* __wind__
+* __waterspout__
+
+is applied. Thus complex events like __flash flood - heavy wind__ are assigned to multiple valid events e.g. __flood__ and __wind__.
+If none of the event strings match with any of the valid events the valid event __other__ was assigned.
 
 ```{r}
 classify_events <- function(data) {
@@ -102,7 +121,7 @@ The number of events has been reduced to `r nrevents`.
 ## Results
 
 The total number of deaths and injuries is used as metric to incorporate both, the number of deaths per event and the total number of events. Thus events with a 
-small number of deaths which happen on a regular basis e.g. `heat` are weighted similar to severe events which only happen in rare cases. 
+small number of deaths which happen on a regular basis e.g. __heat__ are weighted similar to severe events which only happen in rare cases. 
 
 ```{r}
 agg <- group_by(storm_clean, valid_event) %>% 
